@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { ProjectDetail } from '@/lib/api/endpoints/projects';
-import type { IssueLinkInputKind, IssueRelations } from '@/lib/api/endpoints/issues';
+import type { IssueLinkInputKind, IssueRelations, IssueWebLink } from '@/lib/api/endpoints/issues';
 import { usePermissions } from '@/hooks/usePermissions';
 import { LINK_RELATIONS, inverseRelation, linkRelation, storedKind } from '@/utils/issueLinks';
 import { useLinkRelationLabel } from '@/hooks/useLinkRelationLabel';
@@ -8,7 +8,10 @@ import { usePersistedOpen } from '@/hooks/usePersistedOpen';
 import { useLinkIssues, useUnlinkIssues } from '../../services/links.service';
 import { useSetRelatedIssueState } from '../../services/relatedIssues.service';
 import NewIssueModal from '../create/NewIssueModal';
+import { useRemoveIssueWebLink } from '../../services/webLinks.service';
 import IssueLinkDialog from './IssueLinkDialog';
+import IssueWebLinkDialog from './IssueWebLinkDialog';
+import IssueWebLinkRow from './IssueWebLinkRow';
 import IssueLinksAddMenu from './IssueLinksAddMenu';
 import IssueRefRow from './IssueRefRow';
 import IssueRefList from './IssueRefList';
@@ -19,7 +22,8 @@ import { useTranslations } from 'next-intl';
 // issue (Blocked by, Blocks, Duplicates, Duplicated by, Related). The links come
 // with the issue, so the panel takes them rather than fetching them. A link is
 // added either to an issue found through the search dialog or to one created on
-// the spot in the ordinary create modal. The heading collapses the section, the
+// the spot in the ordinary create modal. Web links to pages outside the tracker
+// are listed last. The heading collapses the section, the
 // same way the Stats one below it does; unlike Stats, which reads the account
 // preferences, this is a client-only choice. On a public share the section lists
 // the relations and nothing else, and stays off the page when there are none.
@@ -30,7 +34,8 @@ export default function IssueLinksPanel({
   onOpenIssue,
 }: {
   project: ProjectDetail;
-  issue: IssueRelations;
+  // A public share carries no web links.
+  issue: IssueRelations & { webLinks?: IssueWebLink[] };
   readOnly?: boolean;
   // Where a public share opens the issue on the other end, which has no page of
   // its own to link to.
@@ -43,13 +48,16 @@ export default function IssueLinksPanel({
   const canCreate = !readOnly && can('work_items', 'create');
   const [adding, setAdding] = useState<IssueLinkInputKind | null>(null);
   const [creating, setCreating] = useState<IssueLinkInputKind | null>(null);
+  const [addingWebLink, setAddingWebLink] = useState(false);
+  const removeWebLink = useRemoveIssueWebLink(issue.id);
   const { open, toggle } = usePersistedOpen('issue-links-open');
   const linkIssues = useLinkIssues();
   const unlinkIssues = useUnlinkIssues();
   const setState = useSetRelatedIssueState(project.project.ref, issue.id);
 
   const links = issue.links;
-  if (readOnly && links.length === 0) return null;
+  const webLinks = issue.webLinks ?? [];
+  if (readOnly && links.length === 0 && webLinks.length === 0) return null;
 
   const groups = LINK_RELATIONS.map((relation) => ({
     relation,
@@ -70,12 +78,13 @@ export default function IssueLinksPanel({
             canCreate={canCreate}
             onLinkExisting={setAdding}
             onCreateNew={setCreating}
+            onAddWebLink={() => setAddingWebLink(true)}
           />
         )}
       </div>
 
       {open &&
-        (links.length === 0 ? (
+        (links.length === 0 && webLinks.length === 0 ? (
           <p className="rounded-md border border-dashed p-4 text-center text-sm text-muted-foreground">
             {t('emptyHint')}
           </p>
@@ -113,6 +122,21 @@ export default function IssueLinksPanel({
                 ))}
               </div>
             ))}
+            {webLinks.length > 0 && (
+              <div className="col-span-full grid grid-cols-subgrid">
+                <h4 className="col-span-full mb-1 px-2 text-xs font-medium text-muted-foreground">
+                  {t('webLinks')}
+                </h4>
+                {webLinks.map((webLink) => (
+                  <IssueWebLinkRow
+                    key={`web:${webLink.id}`}
+                    link={webLink}
+                    removeLabel={t('removeWebLink', { url: webLink.url })}
+                    onRemove={canEdit ? () => removeWebLink.mutate(webLink.id) : undefined}
+                  />
+                ))}
+              </div>
+            )}
           </IssueRefList>
         ))}
 
@@ -128,6 +152,10 @@ export default function IssueLinksPanel({
           }
           onClose={() => setAdding(null)}
         />
+      )}
+
+      {addingWebLink && (
+        <IssueWebLinkDialog issueId={issue.id} onClose={() => setAddingWebLink(false)} />
       )}
 
       {creating && (

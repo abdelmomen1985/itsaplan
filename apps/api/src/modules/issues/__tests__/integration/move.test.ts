@@ -139,7 +139,7 @@ describe('move issue', () => {
     expect(old.data?.watchers.map((w) => w.userId)).toContain(user.userId);
   });
 
-  it('drops the links to issues that stay behind', async () => {
+  it('keeps the links to issues that stay behind', async () => {
     const { asOwner, ops, mktColumns } = await setup();
     const issue = (await createIssue(asOwner, mktColumns[0].id)).data!;
     const other = (await createIssue(asOwner, mktColumns[0].id, 'Other')).data!;
@@ -148,7 +148,7 @@ describe('move issue', () => {
       .links.post({ targetIssueId: other.id, kind: 'relates' });
 
     await asOwner.issues({ issueId: issue.id }).move.post({ projectId: ops.id });
-    expect((await read(asOwner, other.id)).links).toEqual([]);
+    expect((await read(asOwner, other.id)).links).toMatchObject([{ issue: { id: issue.id } }]);
   });
 
   it('refuses the project the issue is in and a project of another team', async () => {

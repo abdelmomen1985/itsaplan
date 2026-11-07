@@ -97,6 +97,20 @@ export const AGENT_ACTIONS: ToolMeta[] = [
     always: false,
   },
   {
+    key: 'add_issue_web_link',
+    group: 'issues',
+    label: 'Add web link',
+    description: 'Attach a URL to an issue.',
+    always: false,
+  },
+  {
+    key: 'remove_issue_web_link',
+    group: 'issues',
+    label: 'Remove web link',
+    description: 'Remove a URL from an issue.',
+    always: false,
+  },
+  {
     key: 'create_worklog',
     group: 'issues',
     label: 'Log time',

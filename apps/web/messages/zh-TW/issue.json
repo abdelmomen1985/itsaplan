@@ -199,14 +199,27 @@
     "title": "關聯",
     "remove": "移除與 {issue} 的關聯",
     "emptyHint": "點選「新增」，關聯阻塞、重複或相關的工作項目。",
-    "newIssue": "新建工作項目"
+    "newIssue": "新建工作項目",
+    "webLink": "網頁連結",
+    "webLinks": "網頁連結",
+    "removeWebLink": "移除指向 {url} 的連結"
   },
   "linkDialog": {
     "title": "關聯工作項目：{relation}",
     "searchPrompt": "搜尋與此工作項目{relation}的工作項目…",
     "failed": "無法關聯工作項目",
     "noMatches": "沒有匹配的工作項目。",
-    "typeToSearch": "輸入內容以搜尋此專案的工作項目。"
+    "typeToSearch": "輸入以搜尋議題。",
+    "thisProject": "本專案",
+    "otherProjects": "其他專案"
+  },
+  "webLinkDialog": {
+    "title": "新增網頁連結",
+    "description": "將此議題連結到追蹤器以外的頁面，例如設計檔或工單。",
+    "url": "URL",
+    "linkTitle": "標題",
+    "linkTitlePlaceholder": "選填",
+    "added": "已新增網頁連結"
   },
   "subtasks": {
     "title": "子任務",

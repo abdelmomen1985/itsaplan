@@ -199,14 +199,27 @@
     "title": "Liens",
     "remove": "Retirer le lien vers {issue}",
     "emptyHint": "Utilisez Ajouter pour lier un ticket qui bloque celui-ci, en est un doublon ou s'y rapporte.",
-    "newIssue": "Nouveau ticket"
+    "newIssue": "Nouveau ticket",
+    "webLink": "Lien web",
+    "webLinks": "Liens web",
+    "removeWebLink": "Supprimer le lien vers {url}"
   },
   "linkDialog": {
     "title": "Lier un ticket : {relation}",
     "searchPrompt": "Rechercher les tickets dont celui-ci est {relation}…",
     "failed": "Impossible de lier les tickets",
     "noMatches": "Aucun ticket ne correspond.",
-    "typeToSearch": "Saisissez du texte pour rechercher parmi les tickets de ce projet."
+    "typeToSearch": "Tapez pour rechercher des tickets.",
+    "thisProject": "Ce projet",
+    "otherProjects": "Autres projets"
+  },
+  "webLinkDialog": {
+    "title": "Ajouter un lien web",
+    "description": "Liez ce ticket à une page externe, comme un fichier de design ou un ticket.",
+    "url": "URL",
+    "linkTitle": "Titre",
+    "linkTitlePlaceholder": "Facultatif",
+    "added": "Lien web ajouté"
   },
   "subtasks": {
     "title": "Sous-tâches",

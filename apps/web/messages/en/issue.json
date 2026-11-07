@@ -199,14 +199,27 @@
     "title": "Links",
     "remove": "Remove the link to {issue}",
     "emptyHint": "Use Add to link an issue that blocks, duplicates or relates to this one.",
-    "newIssue": "New issue"
+    "newIssue": "New issue",
+    "webLink": "Web link",
+    "webLinks": "Web links",
+    "removeWebLink": "Remove the link to {url}"
   },
   "linkDialog": {
     "title": "Link an issue: {relation}",
     "searchPrompt": "Search issues this one is {relation}…",
     "failed": "Could not link the issues",
     "noMatches": "No issues match.",
-    "typeToSearch": "Type to search this project’s issues."
+    "typeToSearch": "Type to search issues.",
+    "thisProject": "This project",
+    "otherProjects": "Other projects"
+  },
+  "webLinkDialog": {
+    "title": "Add a web link",
+    "description": "Link this issue to a page outside the tracker, such as a design file or a ticket.",
+    "url": "URL",
+    "linkTitle": "Title",
+    "linkTitlePlaceholder": "Optional",
+    "added": "Web link added"
   },
   "subtasks": {
     "title": "Subtasks",

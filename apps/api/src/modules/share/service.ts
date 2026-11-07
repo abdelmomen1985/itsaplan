@@ -162,7 +162,7 @@ async function issueBundle(
     buildScaffold(project, extended),
     extended ? getIssueFieldValues(issueRow.id) : [],
     extended ? issueFeed(issueRow.id) : [],
-    listIssueLinks(issueRow.id),
+    listIssueLinks(issueRow.id, issueRow.projectId, null),
     getParentRef(issueRow.parentId),
     listSubtasks(issueRow.id),
   ]);

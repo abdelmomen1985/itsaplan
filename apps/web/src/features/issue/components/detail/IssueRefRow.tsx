@@ -31,7 +31,8 @@ export default function IssueRefRow({
   readOnly,
 }: {
   project: ProjectDetail;
-  issue: IssueRef;
+  // projectRef is set for the far end of a relation, which may be in another project.
+  issue: IssueRef & { projectRef?: string };
   scrollAnchorKey: string;
   removeLabel: string;
   onRemove?: () => void;
@@ -64,7 +65,7 @@ export default function IssueRefRow({
       <Link
         {...historyScrollRestorationLinkProps}
         {...historyScrollRestorationAnchorProps(scrollAnchorKey)}
-        href={issuePath(project.project.ref, issue.sequenceNumber)}
+        href={issuePath(issue.projectRef ?? project.project.ref, issue.sequenceNumber)}
         className={labelClass}
       >
         {label}

@@ -199,14 +199,27 @@
     "title": "Links",
     "remove": "Remover o link para {issue}",
     "emptyHint": "Use Adicionar para vincular uma issue que bloqueia, duplica ou se relaciona com esta.",
-    "newIssue": "Nova issue"
+    "newIssue": "Nova issue",
+    "webLink": "Link web",
+    "webLinks": "Links web",
+    "removeWebLink": "Remover o link para {url}"
   },
   "linkDialog": {
     "title": "Vincular uma issue: {relation}",
     "searchPrompt": "Buscar issues das quais esta é {relation}…",
     "failed": "Não foi possível vincular as issues",
     "noMatches": "Nenhuma issue corresponde.",
-    "typeToSearch": "Digite para buscar as issues deste projeto."
+    "typeToSearch": "Digite para buscar issues.",
+    "thisProject": "Este projeto",
+    "otherProjects": "Outros projetos"
+  },
+  "webLinkDialog": {
+    "title": "Adicionar link web",
+    "description": "Vincule esta issue a uma página externa, como um arquivo de design ou um ticket.",
+    "url": "URL",
+    "linkTitle": "Título",
+    "linkTitlePlaceholder": "Opcional",
+    "added": "Link web adicionado"
   },
   "subtasks": {
     "title": "Subtarefas",

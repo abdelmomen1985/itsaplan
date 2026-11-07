@@ -199,14 +199,27 @@
     "title": "Bağlantılar",
     "remove": "{issue} bağlantısını kaldır",
     "emptyHint": "Bu işi engelleyen, yineleyen veya ilgili olan bir işe bağlamak için Ekle'yi kullanın.",
-    "newIssue": "Yeni iş"
+    "newIssue": "Yeni iş",
+    "webLink": "Web bağlantısı",
+    "webLinks": "Web bağlantıları",
+    "removeWebLink": "{url} bağlantısını kaldır"
   },
   "linkDialog": {
     "title": "İş bağla: {relation}",
     "searchPrompt": "Bu işin {relation} durumunda olduğu işleri arayın…",
     "failed": "İşler birbirine bağlanamadı",
     "noMatches": "Eşleşen iş yok.",
-    "typeToSearch": "Bu projenin işlerinde aramak için yazın."
+    "typeToSearch": "İş aramak için yazın.",
+    "thisProject": "Bu proje",
+    "otherProjects": "Diğer projeler"
+  },
+  "webLinkDialog": {
+    "title": "Web bağlantısı ekle",
+    "description": "Bu işi takip aracının dışındaki bir sayfaya bağlayın, örneğin bir tasarım dosyası veya bilet.",
+    "url": "URL",
+    "linkTitle": "Başlık",
+    "linkTitlePlaceholder": "İsteğe bağlı",
+    "added": "Web bağlantısı eklendi"
   },
   "subtasks": {
     "title": "Alt İşler",
