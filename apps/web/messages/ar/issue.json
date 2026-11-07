@@ -199,14 +199,27 @@
     "title": "الروابط",
     "remove": "إزالة الرابط إلى {issue}",
     "emptyHint": "استخدم إضافة عشان تربط مهمة بتحجب المهمة دي أو مكرّرة منها أو ليها علاقة بيها.",
-    "newIssue": "مهمة جديدة"
+    "newIssue": "مهمة جديدة",
+    "webLink": "رابط ويب",
+    "webLinks": "روابط الويب",
+    "removeWebLink": "إزالة الرابط إلى {url}"
   },
   "linkDialog": {
     "title": "ربط مهمة: {relation}",
     "searchPrompt": "ابحث عن مهام هذه المهمة {relation}…",
     "failed": "تعذّر ربط المهام",
     "noMatches": "لا توجد مهام مطابقة.",
-    "typeToSearch": "اكتب للبحث في مهام هذا المشروع."
+    "typeToSearch": "اكتب للبحث في المهام.",
+    "thisProject": "هذا المشروع",
+    "otherProjects": "مشاريع أخرى"
+  },
+  "webLinkDialog": {
+    "title": "إضافة رابط ويب",
+    "description": "اربط هذه المهمة بصفحة خارج المتتبع، مثل ملف تصميم أو تذكرة.",
+    "url": "الرابط",
+    "linkTitle": "العنوان",
+    "linkTitlePlaceholder": "اختياري",
+    "added": "تمت إضافة رابط الويب"
   },
   "subtasks": {
     "title": "المهام الفرعية",

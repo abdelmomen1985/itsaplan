@@ -199,14 +199,27 @@
     "title": "پیوندها",
     "remove": "حذف پیوند به {issue}",
     "emptyHint": "از افزودن استفاده کنید تا تسکی را پیوند دهید که مانع، تکراری یا مرتبط با این یکی است.",
-    "newIssue": "تسک جدید"
+    "newIssue": "تسک جدید",
+    "webLink": "پیوند وب",
+    "webLinks": "پیوندهای وب",
+    "removeWebLink": "حذف پیوند به {url}"
   },
   "linkDialog": {
     "title": "پیوند یک تسک: {relation}",
     "searchPrompt": "جستجوی تسک‌هایی که این یکی {relation} آن‌هاست…",
     "failed": "پیوند تسک‌ها ممکن نشد",
     "noMatches": "هیچ تسکی مطابقت ندارد.",
-    "typeToSearch": "برای جستجوی تسک‌های این پروژه تایپ کنید."
+    "typeToSearch": "برای جستجوی موردها تایپ کنید.",
+    "thisProject": "این پروژه",
+    "otherProjects": "پروژه‌های دیگر"
+  },
+  "webLinkDialog": {
+    "title": "افزودن پیوند وب",
+    "description": "این مورد را به صفحه‌ای خارج از ردیاب پیوند دهید، مانند فایل طراحی یا تیکت.",
+    "url": "نشانی",
+    "linkTitle": "عنوان",
+    "linkTitlePlaceholder": "اختیاری",
+    "added": "پیوند وب افزوده شد"
   },
   "subtasks": {
     "title": "زیرتسک‌ها",

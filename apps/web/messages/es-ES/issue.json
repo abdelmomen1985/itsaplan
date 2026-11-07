@@ -199,14 +199,27 @@
     "title": "Enlaces",
     "remove": "Quitar el enlace a {issue}",
     "emptyHint": "Usa Añadir para enlazar un ticket que bloquea, duplica o se relaciona con esta.",
-    "newIssue": "Nuevo ticket"
+    "newIssue": "Nuevo ticket",
+    "webLink": "Enlace web",
+    "webLinks": "Enlaces web",
+    "removeWebLink": "Quitar el enlace a {url}"
   },
   "linkDialog": {
     "title": "Enlazar un ticket: {relation}",
     "searchPrompt": "Buscar tickets con los que este está {relation}…",
     "failed": "No se han podido enlazar los tickets",
     "noMatches": "Ningún ticket coincide.",
-    "typeToSearch": "Escribe para buscar los tickets de este proyecto."
+    "typeToSearch": "Escribe para buscar incidencias.",
+    "thisProject": "Este proyecto",
+    "otherProjects": "Otros proyectos"
+  },
+  "webLinkDialog": {
+    "title": "Añadir un enlace web",
+    "description": "Enlaza esta incidencia con una página externa, como un archivo de diseño o un ticket.",
+    "url": "URL",
+    "linkTitle": "Título",
+    "linkTitlePlaceholder": "Opcional",
+    "added": "Enlace web añadido"
   },
   "subtasks": {
     "title": "Subtareas",

@@ -160,7 +160,7 @@ export const IssueLinkResponse = t.Object({
   id: t.Number(),
   kind: StoredLinkKind,
   direction: t.Union([t.Literal('outward'), t.Literal('inward')]),
-  issue: IssueRefResponse,
+  issue: t.Object({ ...IssueRefResponse.properties, projectRef: t.String() }),
 });
 
 // A relation as one of its two issues reads it (IssueLinkInputKind in links.ts). A
@@ -287,13 +287,33 @@ export const createWorklogBody = t.Object({
 
 export const updateWorklogBody = t.Partial(createWorklogBody);
 
+// IssueWebLinkRow from web-links.ts.
+export const IssueWebLinkResponse = t.Object({
+  id: t.Number(),
+  url: t.String(),
+  title: t.Nullable(t.String()),
+  createdAt: t.String(),
+});
+
+export const addIssueWebLinkBody = t.Object({
+  url: t.String({
+    minLength: 1,
+    maxLength: 2048,
+    description: 'An http or https URL.',
+  }),
+  title: t.Optional(t.Nullable(t.String({ maxLength: 200 }))),
+});
+
+export const issueWebLinkParams = t.Object({ issueId: t.Numeric(), webLinkId: t.Numeric() });
+
 // GET /issues/:issueId returns the full issue plus its custom field values, its
-// relations to other issues, the members watching it, and its checklists.
+// relations to other issues, its web links, the members watching it, and its checklists.
 export const IssueWithFieldsResponse = t.Composite([
   IssueResponse,
   t.Object({
     fields: t.Array(IssueFieldValueRow),
     links: t.Array(IssueLinkResponse),
+    webLinks: t.Array(IssueWebLinkResponse),
     watchers: t.Array(IssueWatcherResponse),
     parent: t.Nullable(IssueRefResponse),
     subtasks: t.Array(IssueRefResponse),

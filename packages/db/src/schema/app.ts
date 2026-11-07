@@ -1738,6 +1738,25 @@ export const issueLink = pgTable(
   ],
 );
 
+// A link from an issue to any web page, such as a design file or a support ticket.
+// The url is http or https only (the api checks it), so a click never runs script.
+export const issueWebLink = pgTable(
+  'issue_web_link',
+  {
+    id: serial('id').primaryKey(),
+    issueId: integer('issue_id')
+      .notNull()
+      .references(() => issue.id, { onDelete: 'cascade' }),
+    url: text('url').notNull(),
+    title: text('title'),
+    createdByUserId: text('created_by_user_id').references(() => user.id, {
+      onDelete: 'set null',
+    }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('issue_web_link_issue_idx').on(t.issueId, t.id)],
+);
+
 // Who follows an issue. A watcher receives every notification the issue produces;
 // the assignment and mention notifications are addressed to one person and reach
 // them whether they watch it or not. `subscribed` false is an unsubscription: the

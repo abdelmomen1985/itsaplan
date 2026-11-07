@@ -61,6 +61,7 @@ import {
 } from './activity';
 import { listStatusTimeline } from './status-history';
 import { addIssueLink, attachBoardLinks, listIssueLinks, removeIssueLink } from './links';
+import { addIssueWebLink, listIssueWebLinks, removeIssueWebLink } from './web-links';
 import {
   attachSubtaskCounts,
   disposeSubtasksOf,
@@ -159,6 +160,9 @@ import {
   issueFieldParams,
   addIssueLinkBody,
   issueLinkParams,
+  addIssueWebLinkBody,
+  issueWebLinkParams,
+  IssueWebLinkResponse,
   checklistTitleBody,
   createChecklistItemBody,
   createChecklistItemsBody,
@@ -302,6 +306,21 @@ export const issueRoutes = new Elysia({ name: 'issues', detail: { tags: ['Issues
           await assertMcpAllowed(target.id, request.headers);
           assertWritable(target, request.method);
           return { target };
+        },
+      };
+    },
+    // The issue on the other end of a new relation. A relation shows on both issues
+    // and writes to both feeds, so the caller must be able to edit work items in the
+    // other issue's project too. A missing issue passes here; addIssueLink answers 404.
+    linkTarget(_enabled: boolean) {
+      return {
+        async resolve({ body, user, request }) {
+          const projectId = await getIssueProjectId(
+            (body as { targetIssueId: number }).targetIssueId,
+          );
+          if (projectId == null) return;
+          await assertPermission(projectId, user, 'work_items', 'edit');
+          await assertProjectReachable(projectId, request);
         },
       };
     },
@@ -559,13 +578,24 @@ export const issueRoutes = new Elysia({ name: 'issues', detail: { tags: ['Issues
         await assertMcpAllowed(issue.projectId, request.headers);
       }
       const fields = await getIssueFieldValues(issue.id);
-      const links = await listIssueLinks(issue.id);
+      const links = await listIssueLinks(issue.id, issue.projectId, user);
       const watchers = await listIssueWatchers(issue.projectId, issue.id);
       const parent = await getParentRef(issue.parentId);
       const subtasks = await listSubtasks(issue.id);
       const checklists = await listChecklists(issue.id);
       const development = await listIssueDevelopmentLinks(issue.id);
-      return { ...issue, fields, links, watchers, parent, subtasks, checklists, development };
+      const webLinks = await listIssueWebLinks(issue.id);
+      return {
+        ...issue,
+        fields,
+        links,
+        webLinks,
+        watchers,
+        parent,
+        subtasks,
+        checklists,
+        development,
+      };
     },
     {
       params: issueSequenceParams,
@@ -687,13 +717,24 @@ export const issueRoutes = new Elysia({ name: 'issues', detail: { tags: ['Issues
       // MCP toggle itself (it does not run through the workItem guard).
       await assertMcpAllowed(issue.projectId, request.headers);
       const fields = await getIssueFieldValues(issue.id);
-      const links = await listIssueLinks(issue.id);
+      const links = await listIssueLinks(issue.id, issue.projectId, user);
       const watchers = await listIssueWatchers(issue.projectId, issue.id);
       const parent = await getParentRef(issue.parentId);
       const subtasks = await listSubtasks(issue.id);
       const checklists = await listChecklists(issue.id);
       const development = await listIssueDevelopmentLinks(issue.id);
-      return { ...issue, fields, links, watchers, parent, subtasks, checklists, development };
+      const webLinks = await listIssueWebLinks(issue.id);
+      return {
+        ...issue,
+        fields,
+        links,
+        webLinks,
+        watchers,
+        parent,
+        subtasks,
+        checklists,
+        development,
+      };
     },
     {
       params: issueParams,
@@ -756,7 +797,7 @@ export const issueRoutes = new Elysia({ name: 'issues', detail: { tags: ['Issues
           'Move an issue, with its subtasks, to another project of the same team. Each ' +
           'moved issue gets a new number in the target project and its old identifier ' +
           'still resolves. Column, type, labels and custom fields are matched by name; ' +
-          'cycle, initiative and links to issues left behind are dropped.',
+          'cycle and initiative are dropped. Links to other issues are kept.',
         ...mcpTool('move_issue'),
       },
     },
@@ -1035,7 +1076,7 @@ export const issueRoutes = new Elysia({ name: 'issues', detail: { tags: ['Issues
     },
   )
 
-  // Links the issue in the path to another issue of the same project. The
+  // Links the issue in the path to another issue, of any project. The
   // relation reads from the issue in the path (it blocks / relates to /
   // duplicates the target); both issues show it, each from its own side. Reading
   // the relations is part of the issue read, so there is no list route.
@@ -1049,11 +1090,12 @@ export const issueRoutes = new Elysia({ name: 'issues', detail: { tags: ['Issues
       body: addIssueLinkBody,
       params: issueParams,
       workItem: 'edit',
+      linkTarget: true,
       response: { 201: IssueLinkResponse, ...commonErrors, ...errors(409) },
       detail: {
         summary: 'Link two issues',
         description:
-          'Link an issue to another issue of the same project. kind states the relation as read from the issue in the path: it blocks, is blocked by, relates to, duplicates, or is duplicated by the target. Both issue ids are the internal numeric ids.',
+          'Link an issue to another issue, in the same project or in another project you can edit. kind states the relation as read from the issue in the path: it blocks, is blocked by, relates to, duplicates, or is duplicated by the target. Both issue ids are the internal numeric ids.',
         ...mcpTool('link_issues'),
       },
     },
@@ -1076,6 +1118,45 @@ export const issueRoutes = new Elysia({ name: 'issues', detail: { tags: ['Issues
         summary: 'Unlink two issues',
         description: "Remove one of an issue's relations by the link id.",
         ...mcpTool('unlink_issues'),
+      },
+    },
+  )
+
+  .post(
+    '/issues/:issueId/web-links',
+    async ({ params, body, user, set }) => {
+      set.status = 201;
+      return addIssueWebLink(params.issueId, body, requireUser(user).id);
+    },
+    {
+      body: addIssueWebLinkBody,
+      params: issueParams,
+      workItem: 'edit',
+      response: { 201: IssueWebLinkResponse, ...commonErrors },
+      detail: {
+        summary: 'Add a web link to an issue',
+        description:
+          'Attach an http or https URL to an issue, with an optional title. The issue read lists them as webLinks.',
+        ...mcpTool('add_issue_web_link'),
+      },
+    },
+  )
+
+  .delete(
+    '/issues/:issueId/web-links/:webLinkId',
+    async ({ params }) => {
+      const removed = await removeIssueWebLink(params.issueId, params.webLinkId);
+      if (!removed) throw new HttpError(404, 'Web link not found');
+      return noContent();
+    },
+    {
+      params: issueWebLinkParams,
+      workItem: 'edit',
+      response: { 204: t.Void(), ...commonErrors },
+      detail: {
+        summary: 'Remove a web link from an issue',
+        description: "Remove one of an issue's web links by its id.",
+        ...mcpTool('remove_issue_web_link'),
       },
     },
   )

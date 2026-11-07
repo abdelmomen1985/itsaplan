@@ -187,8 +187,17 @@ export interface IssueLink {
   id: number;
   kind: IssueLinkKind;
   direction: IssueLinkDirection;
-  // The issue on the other end of the relation.
-  issue: IssueRef;
+  // The issue on the other end of the relation. projectRef names its project, which
+  // differs from this issue's own for a relation across projects.
+  issue: IssueRef & { projectRef: string };
+}
+
+// A link from an issue to a web page outside the tracker. The url is http or https.
+export interface IssueWebLink {
+  id: number;
+  url: string;
+  title: string | null;
+  createdAt: string;
 }
 
 // One of an issue's relations as the board payload carries it: how the relation
@@ -243,6 +252,7 @@ export interface IssueRelations extends IssueDetail {
 
 // The issue as the detail routes return it.
 export interface IssueWithWatchers extends IssueRelations {
+  webLinks: IssueWebLink[];
   watchers: IssueWatcher[];
   checklists: Checklist[];
   development: DevelopmentLink[];
@@ -411,6 +421,15 @@ export const linkIssues = (issueId: number, targetIssueId: number, kind: IssueLi
 
 export const unlinkIssues = (issueId: number, linkId: number) =>
   request<void>(`/issues/${issueId}/links/${linkId}`, { method: 'DELETE' });
+
+export const addIssueWebLink = (issueId: number, body: { url: string; title?: string | null }) =>
+  request<IssueWebLink>(`/issues/${issueId}/web-links`, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+
+export const removeIssueWebLink = (issueId: number, webLinkId: number) =>
+  request<void>(`/issues/${issueId}/web-links/${webLinkId}`, { method: 'DELETE' });
 
 // Following an issue. The singular routes act on the signed-in user; the
 // watcher routes let an editor curate other project members. Every route

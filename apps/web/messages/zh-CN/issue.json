@@ -199,14 +199,27 @@
     "title": "关联",
     "remove": "移除与 {issue} 的关联",
     "emptyHint": "点击“添加”，关联阻塞、重复或相关的工作项。",
-    "newIssue": "新建工作项"
+    "newIssue": "新建工作项",
+    "webLink": "网页链接",
+    "webLinks": "网页链接",
+    "removeWebLink": "移除指向 {url} 的链接"
   },
   "linkDialog": {
     "title": "关联工作项：{relation}",
     "searchPrompt": "搜索与此工作项{relation}的工作项…",
     "failed": "无法关联工作项",
     "noMatches": "没有匹配的工作项。",
-    "typeToSearch": "输入内容以搜索此项目的工作项。"
+    "typeToSearch": "输入以搜索事项。",
+    "thisProject": "本项目",
+    "otherProjects": "其他项目"
+  },
+  "webLinkDialog": {
+    "title": "添加网页链接",
+    "description": "将此事项链接到跟踪器之外的页面，例如设计文件或工单。",
+    "url": "URL",
+    "linkTitle": "标题",
+    "linkTitlePlaceholder": "可选",
+    "added": "已添加网页链接"
   },
   "subtasks": {
     "title": "子任务",

@@ -1,12 +1,14 @@
-import { db, issue, issueLink, project as projectTable } from '@repo/db';
+import { db, issue, issueLink, project as projectTable, team } from '@repo/db';
 import { and, eq, isNull, or, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import { HttpError } from '#shared/lib';
+import { checkPermission, type AuthUser } from '#shared/access';
+import { projectRefSql } from '#modules/teams/ref';
 import { recordActivityEntries, rowSide, textSide, type ActivityInput } from './activity';
 import { emitIssueEvents } from './webhook-payload';
 import { getIssues } from './service';
 
-// Relations between issues of one project. A relation is one row (issue_link);
+// Relations between issues, in one project or across projects. A relation is one row (issue_link);
 // which side of it an issue sits on decides how the relation reads for that
 // issue: the source of a 'blocks' row blocks, its target is blocked by.
 
@@ -28,9 +30,11 @@ export interface IssueLinkRow {
   id: number;
   kind: IssueLinkKind;
   direction: IssueLinkDirection;
-  // The issue on the other end of the relation.
+  // The issue on the other end of the relation. projectRef names its project, which
+  // differs from the issue's own for a relation across projects.
   issue: {
     id: number;
+    projectRef: string;
     sequenceNumber: number;
     identifier: string;
     title: string;
@@ -68,13 +72,20 @@ function storedLink(
 }
 
 // Every relation the issue takes part in, on either side, ordered by kind and
-// then by the other issue's number.
-export async function listIssueLinks(issueId: number): Promise<IssueLinkRow[]> {
+// then by the other issue's number. A relation to another project is kept only when
+// viewer may read work items there; without a viewer (a public share) it is left out.
+export async function listIssueLinks(
+  issueId: number,
+  projectId: number,
+  viewer: AuthUser | null,
+): Promise<IssueLinkRow[]> {
   const rows = await db
     .select({
       id: issueLink.id,
       kind: issueLink.kind,
       sourceIssueId: issueLink.sourceIssueId,
+      projectId: issue.projectId,
+      projectRef: projectRefSql,
       projectKey: projectTable.key,
       otherId: issue.id,
       sequenceNumber: issue.sequenceNumber,
@@ -93,23 +104,38 @@ export async function listIssueLinks(issueId: number): Promise<IssueLinkRow[]> {
       ),
     )
     .innerJoin(projectTable, eq(projectTable.id, issue.projectId))
+    .innerJoin(team, eq(team.id, projectTable.teamId))
     .where(or(eq(issueLink.sourceIssueId, issueId), eq(issueLink.targetIssueId, issueId)))
-    .orderBy(issueLink.kind, issue.sequenceNumber);
+    .orderBy(issueLink.kind, projectTable.key, issue.sequenceNumber);
 
-  return rows.map((row) => ({
-    id: row.id,
-    kind: row.kind as IssueLinkKind,
-    direction: row.sourceIssueId === issueId ? 'outward' : 'inward',
-    issue: {
-      id: row.otherId,
-      sequenceNumber: row.sequenceNumber,
-      identifier: `${row.projectKey}-${row.sequenceNumber}`,
-      title: row.title,
-      columnId: row.columnId,
-      typeId: row.typeId,
-      archived: row.archivedAt !== null,
-    },
-  }));
+  const otherProjects = [...new Set(rows.map((row) => row.projectId))].filter(
+    (id) => id !== projectId,
+  );
+  const readable = new Set<number>([projectId]);
+  if (viewer) {
+    const checks = await Promise.all(
+      otherProjects.map((id) => checkPermission(id, viewer, 'work_items', 'read')),
+    );
+    otherProjects.forEach((id, i) => checks[i] && readable.add(id));
+  }
+
+  return rows
+    .filter((row) => readable.has(row.projectId))
+    .map((row) => ({
+      id: row.id,
+      kind: row.kind as IssueLinkKind,
+      direction: row.sourceIssueId === issueId ? 'outward' : 'inward',
+      issue: {
+        id: row.otherId,
+        projectRef: row.projectRef,
+        sequenceNumber: row.sequenceNumber,
+        identifier: `${row.projectKey}-${row.sequenceNumber}`,
+        title: row.title,
+        columnId: row.columnId,
+        typeId: row.typeId,
+        archived: row.archivedAt !== null,
+      },
+    }));
 }
 
 // One relation as a board issue carries it: how it reads from that issue, and the
@@ -139,12 +165,16 @@ export async function attachBoardLinks<T extends { id: number }>(
       targetIssueId: issueLink.targetIssueId,
     })
     .from(issueLink)
-    // Both ends always belong to the same project (addIssueLink enforces it), so
-    // the source side decides membership; both decide whether it is still active.
+    // A relation to another project is left out: the board does not hold that issue.
     .innerJoin(source, eq(source.id, issueLink.sourceIssueId))
     .innerJoin(target, eq(target.id, issueLink.targetIssueId))
     .where(
-      and(eq(source.projectId, projectId), isNull(source.archivedAt), isNull(target.archivedAt)),
+      and(
+        eq(source.projectId, projectId),
+        eq(target.projectId, projectId),
+        isNull(source.archivedAt),
+        isNull(target.archivedAt),
+      ),
     );
 
   const byIssue = new Map<number, BoardIssueLink[]>();
@@ -202,6 +232,7 @@ function historyEntries(
 interface EndRow {
   id: number;
   projectId: number;
+  projectRef: string;
   projectKey: string;
   sequenceNumber: number;
   title: string;
@@ -211,7 +242,8 @@ interface EndRow {
   linkId: number | null;
 }
 
-// Links two issues of the same project. The relation is stated as read from
+// Links two issues, of one project or of two. The route checks that the caller may
+// edit work items in both projects. The relation is stated as read from
 // issueId: it blocks, is blocked by, relates to, duplicates or is duplicated by
 // targetIssueId. A pair already linked with this kind, in either direction, is
 // rejected with a 409 — the inverse of a directional kind ("A blocks B" plus "B
@@ -220,9 +252,8 @@ interface EndRow {
 // Reading both issues and inserting the relation is one statement: the insert
 // carries its own preconditions, and the pair index (issue_link_pair_kind_idx)
 // decides the duplicate, so nothing can slip in between a check and the write.
-// What came back says which precondition failed — fewer than two issues, two
-// projects, or no inserted id, which with the preconditions met can only be the
-// duplicate. The activity entries join it in one transaction; the webhooks fire
+// What came back says which precondition failed — fewer than two issues, or no
+// inserted id, which with both issues present can only be the duplicate. The activity entries join it in one transaction; the webhooks fire
 // after it commits, so a rolled-back relation is never announced.
 export async function addIssueLink(
   issueId: number,
@@ -233,11 +264,12 @@ export async function addIssueLink(
   if (issueId === targetIssueId) throw new HttpError(400, 'An issue cannot be linked to itself');
   const stored = storedLink(issueId, targetIssueId, kind);
 
-  const { target, linkId } = await db.transaction(async (tx) => {
+  const { source, target, linkId } = await db.transaction(async (tx) => {
     const rows = (await tx.execute(sql`
       with ends as (
         select i.id,
                i.project_id as "projectId",
+               coalesce(t.slug, t.id::text) || '.' || p.key as "projectRef",
                p.key as "projectKey",
                i.sequence_number as "sequenceNumber",
                i.title,
@@ -246,13 +278,13 @@ export async function addIssueLink(
                i.archived_at is not null as archived
           from ${issue} i
           join ${projectTable} p on p.id = i.project_id
+          join ${team} t on t.id = p.team_id
          where i.id in (${issueId}, ${targetIssueId})
       ),
       inserted as (
         insert into ${issueLink} (source_issue_id, target_issue_id, kind)
         select ${stored.sourceIssueId}, ${stored.targetIssueId}, ${stored.kind}
          where (select count(*) from ends) = 2
-           and (select count(distinct "projectId") from ends) = 1
         on conflict do nothing
         returning id
       )
@@ -263,8 +295,6 @@ export async function addIssueLink(
     const target = rows.find((row) => row.id === targetIssueId);
     if (!source) throw new HttpError(404, 'Issue not found');
     if (!target) throw new HttpError(404, 'Linked issue not found');
-    if (source.projectId !== target.projectId)
-      throw new HttpError(400, 'Both issues must belong to the same project');
     if (target.linkId == null) throw new HttpError(409, 'These issues are already linked');
 
     await recordActivityEntries(
@@ -275,15 +305,10 @@ export async function addIssueLink(
       actorUserId,
       tx,
     );
-    return { target, linkId: target.linkId };
+    return { source, target, linkId: target.linkId };
   });
 
-  await emitIssueEvents(
-    target.projectId,
-    'issue.link_changed',
-    () => getIssues([issueId, targetIssueId]),
-    actorUserId,
-  );
+  await emitLinkChanged([source, target], actorUserId);
 
   return {
     id: linkId,
@@ -291,6 +316,7 @@ export async function addIssueLink(
     direction: stored.sourceIssueId === issueId ? 'outward' : 'inward',
     issue: {
       id: target.id,
+      projectRef: target.projectRef,
       sequenceNumber: target.sequenceNumber,
       identifier: identifierOf(target),
       title: target.title,
@@ -299,6 +325,18 @@ export async function addIssueLink(
       archived: target.archived,
     },
   };
+}
+
+// Fires issue.link_changed for both ends, each to the webhooks of its own project.
+async function emitLinkChanged(
+  ends: { id: number; projectId: number }[],
+  actorUserId?: string | null,
+): Promise<void> {
+  const byProject = new Map<number, number[]>();
+  for (const end of ends)
+    byProject.set(end.projectId, [...(byProject.get(end.projectId) ?? []), end.id]);
+  for (const [projectId, ids] of byProject)
+    await emitIssueEvents(projectId, 'issue.link_changed', () => getIssues(ids), actorUserId);
 }
 
 function identifierOf(row: { projectKey: string; sequenceNumber: number }): string {
@@ -363,15 +401,10 @@ export async function removeIssueLink(
       actorUserId,
       tx,
     );
-    return { projectId: self.projectId, issueIds: [issueId, otherIssueId] };
+    return [self, other];
   });
 
   if (!removed) return false;
-  await emitIssueEvents(
-    removed.projectId,
-    'issue.link_changed',
-    () => getIssues(removed.issueIds),
-    actorUserId,
-  );
+  await emitLinkChanged(removed, actorUserId);
   return true;
 }

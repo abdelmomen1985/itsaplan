@@ -1,4 +1,4 @@
-import { CirclePlus, Plus } from 'lucide-react';
+import { CirclePlus, Globe, Plus } from 'lucide-react';
 import type { IssueLinkInputKind } from '@/lib/api/endpoints/issues';
 import { Button } from '@/components/ui/button';
 import {
@@ -21,10 +21,12 @@ export default function IssueLinksAddMenu({
   canCreate,
   onLinkExisting,
   onCreateNew,
+  onAddWebLink,
 }: {
   canCreate: boolean;
   onLinkExisting: (relation: IssueLinkInputKind) => void;
   onCreateNew: (relation: IssueLinkInputKind) => void;
+  onAddWebLink: () => void;
 }) {
   const tCommon = useTranslations('common');
   const t = useTranslations('issue.links');
@@ -47,6 +49,11 @@ export default function IssueLinksAddMenu({
             </DropdownMenuItem>
           );
         })}
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onSelect={onAddWebLink}>
+          <Globe />
+          {t('webLink')}
+        </DropdownMenuItem>
         {canCreate && (
           <>
             <DropdownMenuSeparator />

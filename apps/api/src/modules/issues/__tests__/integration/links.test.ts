@@ -12,6 +12,17 @@ import { type IssueLinkInputKind } from '../../links';
 // issue (GET /issues/:issueId → `links`) and, with the other end as an id, on each
 // issue of the board payload (GET /projects/:projectKey/issues/board).
 
+// A plain member of MKT only, who cannot reach OPS.
+async function mktMember(asOwner: Api): Promise<Api> {
+  const user = await signUpTestUser({ name: 'Member' });
+  const asMember = authedApi(user.cookie);
+  const invite = await asOwner
+    .projects({ projectKey: 'MKT' })
+    .invites.post({ email: user.email, role: 'member' });
+  await asMember.invites({ token: invite.data!.token }).accept.post();
+  return asMember;
+}
+
 interface Setup {
   asOwner: Api;
   columnId: number;
@@ -50,7 +61,7 @@ function unlink(client: Api, issueId: number, linkId: number) {
   return client.issues({ issueId }).links({ linkId }).delete();
 }
 
-// An issue of a second project, which no issue of the first one may link to.
+// An issue of a second project of the same owner.
 async function foreignIssue(client: Api) {
   await createProject(client, { key: 'OPS', name: 'Operations' });
   const view = await client.projects({ projectKey: 'OPS' }).get();
@@ -158,13 +169,46 @@ describe('issue links', () => {
       expect(res.status).toBe(400);
     });
 
-    it('rejects a target in another project with 400', async () => {
+    it('links an issue of another project and shows it from both sides', async () => {
       const { asOwner, columnId } = await setupProject();
       const issue = (await createIssue(asOwner, columnId)).data!;
       const outside = await foreignIssue(asOwner);
 
-      const res = await link(asOwner, issue.id, outside.id, 'relates');
-      expect(res.status).toBe(400);
+      const res = await link(asOwner, issue.id, outside.id, 'blocks');
+      expect(res.status).toBe(201);
+      expect(res.data!.issue).toMatchObject({ id: outside.id, identifier: outside.identifier });
+      expect(res.data!.issue.projectRef).toEndWith('.OPS');
+
+      expect(await linksOf(asOwner, issue.id)).toMatchObject([
+        { kind: 'blocks', direction: 'outward', issue: { id: outside.id } },
+      ]);
+      const back = await linksOf(asOwner, outside.id);
+      expect(back).toMatchObject([
+        { kind: 'blocks', direction: 'inward', issue: { id: issue.id } },
+      ]);
+      expect(back[0].issue.projectRef).toEndWith('.MKT');
+    });
+
+    it('denies a target in a project the caller cannot edit with 403', async () => {
+      const { asOwner, columnId } = await setupProject();
+      const issue = (await createIssue(asOwner, columnId)).data!;
+      const outside = await foreignIssue(asOwner);
+      const asMember = await mktMember(asOwner);
+
+      const res = await link(asMember, issue.id, outside.id, 'relates');
+      expect(res.status).toBe(403);
+      expect(await linksOf(asOwner, issue.id)).toEqual([]);
+    });
+
+    it('hides a relation to a project the reader cannot read', async () => {
+      const { asOwner, columnId } = await setupProject();
+      const { first, second } = await twoIssues(asOwner, columnId);
+      const outside = await foreignIssue(asOwner);
+      await link(asOwner, first.id, outside.id, 'relates');
+      await link(asOwner, first.id, second.id, 'relates');
+      const asMember = await mktMember(asOwner);
+
+      expect((await linksOf(asMember, first.id)).map((l) => l.issue.id)).toEqual([second.id]);
     });
 
     it('returns 404 for a missing target', async () => {
@@ -254,6 +298,15 @@ describe('issue links', () => {
       await asOwner.issues({ issueId: second.id }).archive.post();
 
       expect((await boardIssue(asOwner, first.id)).links).toEqual([]);
+    });
+
+    it('leaves out a relation to another project', async () => {
+      const { asOwner, columnId } = await setupProject();
+      const issue = (await createIssue(asOwner, columnId)).data!;
+      const outside = await foreignIssue(asOwner);
+      await link(asOwner, issue.id, outside.id, 'blocks');
+
+      expect((await boardIssue(asOwner, issue.id)).links).toEqual([]);
     });
 
     it('leaves out another project’s relations', async () => {

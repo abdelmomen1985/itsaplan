@@ -199,14 +199,27 @@
     "title": "Tautan",
     "remove": "Hapus tautan ke {issue}",
     "emptyHint": "Gunakan Tambah untuk menautkan issue yang memblokir, menduplikasi, atau berkaitan dengan issue ini.",
-    "newIssue": "Issue baru"
+    "newIssue": "Issue baru",
+    "webLink": "Tautan web",
+    "webLinks": "Tautan web",
+    "removeWebLink": "Hapus tautan ke {url}"
   },
   "linkDialog": {
     "title": "Tautkan issue: {relation}",
     "searchPrompt": "Cari issue yang {relation} issue ini…",
     "failed": "Tidak dapat menautkan issue",
     "noMatches": "Tidak ada issue yang cocok.",
-    "typeToSearch": "Ketik untuk mencari issue proyek ini."
+    "typeToSearch": "Ketik untuk mencari isu.",
+    "thisProject": "Proyek ini",
+    "otherProjects": "Proyek lain"
+  },
+  "webLinkDialog": {
+    "title": "Tambah tautan web",
+    "description": "Tautkan isu ini ke halaman di luar pelacak, seperti file desain atau tiket.",
+    "url": "URL",
+    "linkTitle": "Judul",
+    "linkTitlePlaceholder": "Opsional",
+    "added": "Tautan web ditambahkan"
   },
   "subtasks": {
     "title": "Subtugas",
